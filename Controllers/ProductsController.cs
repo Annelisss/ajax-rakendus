@@ -28,16 +28,11 @@ namespace AdvancedAjax.Controllers
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
-            {
                 return NotFound();
-            }
 
-            var product = await _context.Product
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var product = await _context.Product.FirstOrDefaultAsync(m => m.Id == id);
             if (product == null)
-            {
                 return NotFound();
-            }
 
             return View(product);
         }
@@ -49,8 +44,6 @@ namespace AdvancedAjax.Controllers
         }
 
         // POST: Products/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Name,Description,Price")] Product product)
@@ -68,29 +61,22 @@ namespace AdvancedAjax.Controllers
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
-            {
                 return NotFound();
-            }
 
             var product = await _context.Product.FindAsync(id);
             if (product == null)
-            {
                 return NotFound();
-            }
+
             return View(product);
         }
 
         // POST: Products/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,Price")] Product product)
         {
             if (id != product.Id)
-            {
                 return NotFound();
-            }
 
             if (ModelState.IsValid)
             {
@@ -102,13 +88,9 @@ namespace AdvancedAjax.Controllers
                 catch (DbUpdateConcurrencyException)
                 {
                     if (!ProductExists(product.Id))
-                    {
                         return NotFound();
-                    }
                     else
-                    {
                         throw;
-                    }
                 }
                 return RedirectToAction(nameof(Index));
             }
@@ -119,33 +101,30 @@ namespace AdvancedAjax.Controllers
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
-            {
                 return NotFound();
-            }
 
-            var product = await _context.Product
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var product = await _context.Product.FirstOrDefaultAsync(m => m.Id == id);
             if (product == null)
-            {
                 return NotFound();
-            }
 
             return View(product);
         }
 
-        // POST: Products/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
+        // POST: Products/DeleteConfirmed/{id}
+        [HttpPost]
+        [Route("Products/DeleteConfirmed/{id}")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var product = await _context.Product.FindAsync(id);
-            if (product != null)
+            if (product == null)
             {
-                _context.Product.Remove(product);
+                return Json(new { success = false, message = "Product not found." });
             }
 
+            _context.Product.Remove(product);
             await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+
+            return Json(new { success = true });
         }
 
         private bool ProductExists(int id)
