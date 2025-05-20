@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using AdvancedAjax.Models;
 
 namespace AdvancedAjax.Models
 {
@@ -12,5 +13,6 @@ namespace AdvancedAjax.Models
 
         public DbSet<Country> Countries { get; set; }
         public DbSet<City> Cities { get; set; }
+        public DbSet<AdvancedAjax.Models.Product> Product { get; set; } = default!;
     }
 }
