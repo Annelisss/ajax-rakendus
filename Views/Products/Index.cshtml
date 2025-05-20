@@ -7,7 +7,7 @@
 <h1>Index</h1>
 
 <p>
-    <a asp-action="Create">Create New</a>
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createModal">Create New</button>
 </p>
 <table class="table">
     <thead>
@@ -35,7 +35,19 @@
     </tbody>
 </table>
 
-@Html.AntiForgeryToken() <!-- Lisa see, kui kasutad antiforgeryt -->
+@Html.AntiForgeryToken() 
+
+<div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="createProductForm">
+                <div id="createModalContent">
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -59,6 +71,26 @@
                                 alert("Delete failed.");
                             }
                         });
+                    }
+                });
+            });
+
+            // Lae modal-i sisu, kui modal avatakse
+            $('#createModal').on('show.bs.modal', function () {
+                $('#createModalContent').load('/Products/Create');
+            });
+
+            // Vorm submit
+            $('#createProductForm').submit(function (e) {
+                e.preventDefault();
+
+                $.ajax({
+                    type: 'POST',
+                    url: '/Products/Create',
+                    data: $(this).serialize(),
+                    success: function () {
+                        $('#createModal').modal('hide');
+                        location.reload(); // värskenda lehte
                     }
                 });
             });
