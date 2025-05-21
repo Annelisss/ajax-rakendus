@@ -1,11 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using AdvancedAjax.Models;
+using Microsoft.AspNetCore.Http;
 
 namespace AdvancedAjax.Controllers
 {
@@ -25,81 +26,75 @@ namespace AdvancedAjax.Controllers
             return View(await appDbContext.ToListAsync());
         }
 
-        // GET: Customers/Details/5
-        public async Task<IActionResult> Details(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var customer = await _context.Customers
-                .Include(c => c.City)
-                .Include(c => c.Country)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (customer == null)
-            {
-                return NotFound();
-            }
-
-            return View(customer);
-        }
-
         // GET: Customers/Create
         public IActionResult Create()
         {
             ViewData["CityId"] = new SelectList(_context.Cities, "Id", "Name");
             ViewData["CountryId"] = new SelectList(_context.Countries, "Id", "Code");
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return PartialView("CreateModalForm", new Customer());
+            }
+
             return View();
         }
 
         // POST: Customers/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,FirstName,LastName,EmailId,CountryId,CityId,Photo")] Customer customer)
+        public async Task<IActionResult> Create(Customer customer, IFormFile PhotoFile)
         {
             if (ModelState.IsValid)
             {
+                // Salvestame pildi
+                if (PhotoFile != null && PhotoFile.Length > 0)
+                {
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
+                    Directory.CreateDirectory(uploadsFolder);
+
+                    var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(PhotoFile.FileName);
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await PhotoFile.CopyToAsync(stream);
+                    }
+
+                    customer.Photo = uniqueFileName;
+                }
+
                 _context.Add(customer);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+
+                return Json(new { success = true });
             }
+
             ViewData["CityId"] = new SelectList(_context.Cities, "Id", "Name", customer.CityId);
             ViewData["CountryId"] = new SelectList(_context.Countries, "Id", "Code", customer.CountryId);
-            return View(customer);
+
+            return PartialView("CreateModalForm", customer);
         }
 
         // GET: Customers/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var customer = await _context.Customers.FindAsync(id);
-            if (customer == null)
-            {
-                return NotFound();
-            }
+            if (customer == null) return NotFound();
+
             ViewData["CityId"] = new SelectList(_context.Cities, "Id", "Name", customer.CityId);
             ViewData["CountryId"] = new SelectList(_context.Countries, "Id", "Code", customer.CountryId);
             return View(customer);
         }
 
         // POST: Customers/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName,EmailId,CountryId,CityId,Photo")] Customer customer)
         {
-            if (id != customer.Id)
-            {
-                return NotFound();
-            }
+            if (id != customer.Id) return NotFound();
 
             if (ModelState.IsValid)
             {
@@ -110,38 +105,43 @@ namespace AdvancedAjax.Controllers
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!CustomerExists(customer.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    if (!CustomerExists(customer.Id)) return NotFound();
+                    else throw;
                 }
                 return RedirectToAction(nameof(Index));
             }
+
             ViewData["CityId"] = new SelectList(_context.Cities, "Id", "Name", customer.CityId);
             ViewData["CountryId"] = new SelectList(_context.Countries, "Id", "Code", customer.CountryId);
+            return View(customer);
+        }
+
+        // GET: Customers/Details/5
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (id == null) return NotFound();
+
+            var customer = await _context.Customers
+                .Include(c => c.City)
+                .Include(c => c.Country)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (customer == null) return NotFound();
+
             return View(customer);
         }
 
         // GET: Customers/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var customer = await _context.Customers
                 .Include(c => c.City)
                 .Include(c => c.Country)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (customer == null)
-            {
-                return NotFound();
-            }
+
+            if (customer == null) return NotFound();
 
             return View(customer);
         }
@@ -155,9 +155,9 @@ namespace AdvancedAjax.Controllers
             if (customer != null)
             {
                 _context.Customers.Remove(customer);
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
@@ -165,5 +165,38 @@ namespace AdvancedAjax.Controllers
         {
             return _context.Customers.Any(e => e.Id == id);
         }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(Customer customer, IFormFile PhotoFile)
+        {
+            if (ModelState.IsValid)
+            {
+                if (PhotoFile != null && PhotoFile.Length > 0)
+                {
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
+                    if (!Directory.Exists(uploadsFolder))
+                        Directory.CreateDirectory(uploadsFolder);
+
+                    var fileName = Guid.NewGuid().ToString() + Path.GetExtension(PhotoFile.FileName);
+                    var filePath = Path.Combine(uploadsFolder, fileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await PhotoFile.CopyToAsync(stream);
+                    }
+
+                    customer.Photo = "/uploads/" + fileName;
+                }
+
+                _context.Add(customer);
+                await _context.SaveChangesAsync();
+                return Json(new { success = true });
+            }
+
+            ViewData["CityId"] = new SelectList(_context.Cities, "Id", "Name", customer.CityId);
+            ViewData["CountryId"] = new SelectList(_context.Countries, "Id", "Code", customer.CountryId);
+            return PartialView("CreateModalForm", customer);
+        }
+
     }
 }
