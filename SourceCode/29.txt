@@ -1,5 +1,0 @@
-    private readonly IWebHostEnvironment _webHost;
-
-    IWebHostEnvironment webHost
-
-    _webHost = webHost;

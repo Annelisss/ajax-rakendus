@@ -1,5 +1,0 @@
-   if (customer.ProfilePhoto != null)
-    {
-    string uniqueFileName = GetProfilePhotoFileName(customer);
-    customer.PhotoUrl = uniqueFileName;
-    }

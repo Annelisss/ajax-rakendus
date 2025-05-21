@@ -50,8 +50,28 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
-
     <script>
+        // City laadimine vastavalt riigile
+        document.getElementById("CountryId").addEventListener("change", function () {
+            var countryId = this.value;
+            var cityDropdown = document.getElementById("CityId");
+            cityDropdown.innerHTML = '<option value="">-- Select City --</option>';
+
+            if (countryId) {
+                fetch('/Cities/GetCities?countryId=' + countryId)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(city => {
+                            var option = document.createElement("option");
+                            option.value = city.id;
+                            option.text = city.name;
+                            cityDropdown.appendChild(option);
+                        });
+                    });
+            }
+        });
+
+        // Foto eelvaade
         document.getElementById("PhotoInput").addEventListener("change", function (event) {
             const file = event.target.files[0];
             const preview = document.getElementById("PhotoPreview");

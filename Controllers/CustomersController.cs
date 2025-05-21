@@ -47,32 +47,30 @@ namespace AdvancedAjax.Controllers
         {
             if (ModelState.IsValid)
             {
-                // Salvestame pildi
                 if (PhotoFile != null && PhotoFile.Length > 0)
                 {
                     var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
-                    Directory.CreateDirectory(uploadsFolder);
+                    if (!Directory.Exists(uploadsFolder))
+                        Directory.CreateDirectory(uploadsFolder);
 
-                    var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(PhotoFile.FileName);
-                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                    var fileName = Guid.NewGuid().ToString() + Path.GetExtension(PhotoFile.FileName);
+                    var filePath = Path.Combine(uploadsFolder, fileName);
 
                     using (var stream = new FileStream(filePath, FileMode.Create))
                     {
                         await PhotoFile.CopyToAsync(stream);
                     }
 
-                    customer.Photo = uniqueFileName;
+                    customer.Photo = "/uploads/" + fileName;
                 }
 
                 _context.Add(customer);
                 await _context.SaveChangesAsync();
-
                 return Json(new { success = true });
             }
 
             ViewData["CityId"] = new SelectList(_context.Cities, "Id", "Name", customer.CityId);
             ViewData["CountryId"] = new SelectList(_context.Countries, "Id", "Code", customer.CountryId);
-
             return PartialView("CreateModalForm", customer);
         }
 
@@ -165,38 +163,5 @@ namespace AdvancedAjax.Controllers
         {
             return _context.Customers.Any(e => e.Id == id);
         }
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Customer customer, IFormFile PhotoFile)
-        {
-            if (ModelState.IsValid)
-            {
-                if (PhotoFile != null && PhotoFile.Length > 0)
-                {
-                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
-                    if (!Directory.Exists(uploadsFolder))
-                        Directory.CreateDirectory(uploadsFolder);
-
-                    var fileName = Guid.NewGuid().ToString() + Path.GetExtension(PhotoFile.FileName);
-                    var filePath = Path.Combine(uploadsFolder, fileName);
-
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await PhotoFile.CopyToAsync(stream);
-                    }
-
-                    customer.Photo = "/uploads/" + fileName;
-                }
-
-                _context.Add(customer);
-                await _context.SaveChangesAsync();
-                return Json(new { success = true });
-            }
-
-            ViewData["CityId"] = new SelectList(_context.Cities, "Id", "Name", customer.CityId);
-            ViewData["CountryId"] = new SelectList(_context.Countries, "Id", "Code", customer.CountryId);
-            return PartialView("CreateModalForm", customer);
-        }
-
     }
 }

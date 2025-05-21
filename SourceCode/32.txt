@@ -1,2 +1,0 @@
- <input type="hidden" asp-for="Id" />
-
