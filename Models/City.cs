@@ -7,8 +7,8 @@ namespace AdvancedAjax.Models
         [Key]
         public int Id { get; set; }
 
-        [Required]
-        [MaxLength(75)]
+        [Required(ErrorMessage = "City name is required")]
+        [StringLength(100, ErrorMessage = "City name cannot be longer than 100 characters")]
         public string Name { get; set; }
 
         public int CountryId { get; set; }

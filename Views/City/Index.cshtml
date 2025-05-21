@@ -1,0 +1,52 @@
+﻿@model IEnumerable<AdvancedAjax.Models.City>
+
+@{
+    ViewData["Title"] = "Cities";
+}
+
+<h2>Cities</h2>
+<button class="btn btn-primary mb-3" onclick="showCityModal()">Add City</button>
+
+<!-- Modal -->
+<div class="modal fade" id="cityModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add City</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- Siia laaditakse vorm AJAX-iga -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var city in Model)
+        {
+            <tr>
+                <td>@city.Id</td>
+                <td>@city.Name</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@section Scripts {
+    <script>
+        function showCityModal() {
+            $.get('@Url.Action("Create", "City")', function (data) {
+                $("#modal-body").html(data);
+                $("#cityModal").modal("show");
+            });
+        }
+    </script>
+}

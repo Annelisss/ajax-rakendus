@@ -86,11 +86,9 @@ namespace AdvancedAjax.Controllers
             ViewData["CountryId"] = new SelectList(_context.Countries, "Id", "Code", customer.CountryId);
             return View(customer);
         }
-
-        // POST: Customers/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName,EmailId,CountryId,CityId,Photo")] Customer customer)
+        public async Task<IActionResult> Edit(int id, Customer customer)
         {
             if (id != customer.Id) return NotFound();
 
