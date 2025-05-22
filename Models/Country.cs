@@ -17,5 +17,6 @@ namespace AdvancedAjax.Models
 
         [MaxLength(75)]
         public string CurrencyName { get; set; } = "";
+
     }
 }

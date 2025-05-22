@@ -1,18 +1,26 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace AdvancedAjax.Models
+﻿namespace AdvancedAjax.Models
 {
     public class City
     {
         [Key]
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "City name is required")]
-        [StringLength(100, ErrorMessage = "City name cannot be longer than 100 characters")]
+        [Required]
+        [MaxLength(3)]
+        public string Code { get; set; }
+
+        [Required]
+        [MaxLength(75)]
         public string Name { get; set; }
 
+        [ForeignKey("Country")]
         public int CountryId { get; set; }
 
-        public string CountryName { get; set; } = "";
+        public virtual Country Country { get; set; }
+
+        [NotMapped]
+        [MaxLength(75)]
+        public string CountryName { get; set; }
     }
+
 }
