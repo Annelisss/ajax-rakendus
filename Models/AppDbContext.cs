@@ -14,6 +14,5 @@ namespace AdvancedAjax.Models
         public DbSet<Country> Countries { get; set; }
         public DbSet<City> Cities { get; set; }
         public DbSet<Customer> Customers { get; set; }
-        public DbSet<AdvancedAjax.Models.Product> Product { get; set; } = default!;
     }
 }
