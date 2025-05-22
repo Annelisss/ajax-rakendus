@@ -7,18 +7,26 @@
 <h1>Index</h1>
 
 <p>
-    <button id="createButton" class="btn btn-success">Create New</button>
+    <a asp-action="Create">Create New</a>
 </p>
-
 <table class="table">
     <thead>
         <tr>
-            <th>@Html.DisplayNameFor(model => model.FirstName)</th>
-            <th>@Html.DisplayNameFor(model => model.LastName)</th>
-            <th>@Html.DisplayNameFor(model => model.EmailId)</th>
-            <th>@Html.DisplayNameFor(model => model.Country)</th>
-            <th>@Html.DisplayNameFor(model => model.City)</th>
-            <th>@Html.DisplayNameFor(model => model.Photo)</th>
+            <th>
+                @Html.DisplayNameFor(model => model.FirstName)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.LastName)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.EmailId)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.City)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PhotoUrl)
+            </th>
             <th></th>
         </tr>
     </thead>
@@ -26,16 +34,20 @@
         @foreach (var item in Model)
         {
             <tr>
-                <td>@Html.DisplayFor(modelItem => item.FirstName)</td>
-                <td>@Html.DisplayFor(modelItem => item.LastName)</td>
-                <td>@Html.DisplayFor(modelItem => item.EmailId)</td>
-                <td>@Html.DisplayFor(modelItem => item.Country.Code)</td>
-                <td>@Html.DisplayFor(modelItem => item.City.Name)</td>
                 <td>
-                    @if (!string.IsNullOrEmpty(item.Photo))
-                    {
-                        <img src="@item.Photo" style="max-width: 80px;" />
-                    }
+                    @Html.DisplayFor(modelItem => item.FirstName)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.LastName)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.EmailId)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.City.Code)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.PhotoUrl)
                 </td>
                 <td>
                     <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
@@ -46,42 +58,3 @@
         }
     </tbody>
 </table>
-
-<div class="modal fade" id="createModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <form id="createCustomerForm">
-                <div id="createModalContent"></div>
-            </form>
-        </div>
-    </div>
-</div>
-
-@section Scripts {
-    <script>
-        $(document).ready(function () {
-            // Ava modal ja lae vorm
-            $('#createButton').on('click', function () {
-                $.get('/Customers/Create', function (data) {
-                    $('#createModalContent').html(data);
-                    $('#createModal').modal('show');
-                });
-            });
-
-            // Salvesta uus Customer
-            $(document).on('submit', '#createCustomerForm', function (e) {
-                e.preventDefault();
-
-                $.ajax({
-                    type: 'POST',
-                    url: '/Customers/Create',
-                    data: $(this).serialize(),
-                    success: function () {
-                        $('#createModal').modal('hide');
-                        location.reload(); // värskenda tabel
-                    }
-                });
-            });
-        });
-    </script>
-}
