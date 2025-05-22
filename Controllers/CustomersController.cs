@@ -1,165 +1,184 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using AdvancedAjax.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using AdvancedAjax.Models;
-using Microsoft.AspNetCore.Http;
 
 namespace AdvancedAjax.Controllers
 {
-    public class CustomersController : Controller
+    public class CustomerController : Controller
     {
         private readonly AppDbContext _context;
 
-        public CustomersController(AppDbContext context)
+        private readonly IWebHostEnvironment _webHost;
+
+        public CustomerController(AppDbContext context, IWebHostEnvironment webHost)
         {
             _context = context;
+            _webHost = webHost;
         }
 
-        // GET: Customers
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
-            var appDbContext = _context.Customers.Include(c => c.City).Include(c => c.Country);
-            return View(await appDbContext.ToListAsync());
+            List<Customer> Cities;
+            Cities = _context.Customers.ToList();
+            return View(Cities);
         }
 
-        // GET: Customers/Create
+        [HttpGet]
         public IActionResult Create()
         {
-            ViewData["CityId"] = new SelectList(_context.Cities, "Id", "Name");
-            ViewData["CountryId"] = new SelectList(_context.Countries, "Id", "Code");
-
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-            {
-                return PartialView("CreateModalForm", new Customer());
-            }
-
-            return View();
+            Customer Customer = new Customer();
+            ViewBag.Countries = GetCountries();
+            return View(Customer);
         }
 
-        // POST: Customers/Create
+        [ValidateAntiForgeryToken]
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Customer customer, IFormFile PhotoFile)
+        public IActionResult Create(Customer customer)
         {
-            if (ModelState.IsValid)
-            {
-                if (PhotoFile != null && PhotoFile.Length > 0)
-                {
-                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
-                    if (!Directory.Exists(uploadsFolder))
-                        Directory.CreateDirectory(uploadsFolder);
+            string uniqueFileName = GetProfilePhotoFileName(customer);
+            customer.PhotoUrl = uniqueFileName;
 
-                    var fileName = Guid.NewGuid().ToString() + Path.GetExtension(PhotoFile.FileName);
-                    var filePath = Path.Combine(uploadsFolder, fileName);
+            _context.Add(customer);
+            _context.SaveChanges();
+            return RedirectToAction(nameof(Index));
 
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await PhotoFile.CopyToAsync(stream);
-                    }
-
-                    customer.Photo = "/uploads/" + fileName;
-                }
-
-                _context.Add(customer);
-                await _context.SaveChangesAsync();
-                return Json(new { success = true });
-            }
-
-            ViewData["CityId"] = new SelectList(_context.Cities, "Id", "Name", customer.CityId);
-            ViewData["CountryId"] = new SelectList(_context.Countries, "Id", "Code", customer.CountryId);
-            return PartialView("CreateModalForm", customer);
         }
 
-        // GET: Customers/Edit/5
-        public async Task<IActionResult> Edit(int? id)
+        [HttpGet]
+        public IActionResult Details(int Id)
         {
-            if (id == null) return NotFound();
+            Customer customer = _context.Customers
+              .Include(cty => cty.City)
+              .Include(cou => cou.City.Country)
+              .Where(c => c.Id == Id).FirstOrDefault();
 
-            var customer = await _context.Customers.FindAsync(id);
-            if (customer == null) return NotFound();
-
-            ViewData["CityId"] = new SelectList(_context.Cities, "Id", "Name", customer.CityId);
-            ViewData["CountryId"] = new SelectList(_context.Countries, "Id", "Code", customer.CountryId);
             return View(customer);
         }
+
+        [HttpGet]
+        public IActionResult Edit(int Id)
+        {
+            Customer customer = _context.Customers
+               .Include(co => co.City)
+               .Where(c => c.Id == Id).FirstOrDefault();
+
+
+            customer.CountryId = customer.City.CountryId;
+
+            ViewBag.Countries = GetCountries();
+            ViewBag.Cities = GetCities(customer.CountryId);
+
+            return View(customer);
+        }
+
+        [ValidateAntiForgeryToken]
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Customer customer)
+        public IActionResult Edit(Customer customer)
         {
-            if (id != customer.Id) return NotFound();
-
-            if (ModelState.IsValid)
+            if (customer.ProfilePhoto != null)
             {
-                try
-                {
-                    _context.Update(customer);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!CustomerExists(customer.Id)) return NotFound();
-                    else throw;
-                }
-                return RedirectToAction(nameof(Index));
+                string uniqueFileName = GetProfilePhotoFileName(customer);
+                customer.PhotoUrl = uniqueFileName;
             }
 
-            ViewData["CityId"] = new SelectList(_context.Cities, "Id", "Name", customer.CityId);
-            ViewData["CountryId"] = new SelectList(_context.Countries, "Id", "Code", customer.CountryId);
-            return View(customer);
-        }
-
-        // GET: Customers/Details/5
-        public async Task<IActionResult> Details(int? id)
-        {
-            if (id == null) return NotFound();
-
-            var customer = await _context.Customers
-                .Include(c => c.City)
-                .Include(c => c.Country)
-                .FirstOrDefaultAsync(m => m.Id == id);
-
-            if (customer == null) return NotFound();
-
-            return View(customer);
-        }
-
-        // GET: Customers/Delete/5
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null) return NotFound();
-
-            var customer = await _context.Customers
-                .Include(c => c.City)
-                .Include(c => c.Country)
-                .FirstOrDefaultAsync(m => m.Id == id);
-
-            if (customer == null) return NotFound();
-
-            return View(customer);
-        }
-
-        // POST: Customers/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
-        {
-            var customer = await _context.Customers.FindAsync(id);
-            if (customer != null)
-            {
-                _context.Customers.Remove(customer);
-                await _context.SaveChangesAsync();
-            }
-
+            _context.Attach(customer);
+            _context.Entry(customer).State = EntityState.Modified;
+            _context.SaveChanges();
             return RedirectToAction(nameof(Index));
         }
 
-        private bool CustomerExists(int id)
+
+        [HttpGet]
+        public IActionResult Delete(int Id)
         {
-            return _context.Customers.Any(e => e.Id == id);
+            Customer customer = _context.Customers.Where(c => c.Id == Id).FirstOrDefault();
+            return View(customer);
         }
+
+        [ValidateAntiForgeryToken]
+        [HttpPost]
+        public IActionResult Delete(Customer customer)
+        {
+            _context.Attach(customer);
+            _context.Entry(customer).State = EntityState.Deleted;
+            _context.SaveChanges();
+            return RedirectToAction(nameof(Index));
+        }
+
+
+        private List<SelectListItem> GetCountries()
+        {
+            var lstCountries = new List<SelectListItem>();
+
+            List<Country> Countries = _context.Countries.ToList();
+
+            lstCountries = Countries.Select(ct => new SelectListItem()
+            {
+                Value = ct.Id.ToString(),
+                Text = ct.Name
+            }).ToList();
+
+            var defItem = new SelectListItem()
+            {
+                Value = "",
+                Text = "----Select Country----"
+            };
+
+            lstCountries.Insert(0, defItem);
+
+            return lstCountries;
+        }
+        [HttpGet]
+        public JsonResult GetCitiesByCountry(int countryId)
+        {
+
+            List<SelectListItem> cities = _context.Cities
+              .Where(c => c.CountryId == countryId)
+              .OrderBy(n => n.Name)
+              .Select(n =>
+              new SelectListItem
+              {
+                  Value = n.Id.ToString(),
+                  Text = n.Name
+              }).ToList();
+
+            return Json(cities);
+
+        }
+
+        private string GetProfilePhotoFileName(Customer customer)
+        {
+            string uniqueFileName = null;
+
+            if (customer.ProfilePhoto != null)
+            {
+                string uploadsFolder = Path.Combine(_webHost.WebRootPath, "images");
+                uniqueFileName = Guid.NewGuid().ToString() + "_" + customer.ProfilePhoto.FileName;
+                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    customer.ProfilePhoto.CopyTo(fileStream);
+                }
+            }
+            return uniqueFileName;
+        }
+
+        private List<SelectListItem> GetCities(int countryId)
+        {
+
+            List<SelectListItem> cities = _context.Cities
+                .Where(c => c.CountryId == countryId)
+                .OrderBy(n => n.Name)
+                .Select(n =>
+                new SelectListItem
+                {
+                    Value = n.Id.ToString(),
+                    Text = n.Name
+                }).ToList();
+
+            return cities;
+        }
+
+
     }
 }

@@ -1,13 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using AdvancedAjax.Models;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using AdvancedAjax.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace AdvancedAjax.Controllers
 {
     public class CityController : Controller
     {
+
         private readonly AppDbContext _context;
 
         public CityController(AppDbContext context)
@@ -15,42 +14,133 @@ namespace AdvancedAjax.Controllers
             _context = context;
         }
 
-        // HTML-vaate jaoks
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
-            var cities = await _context.Cities.ToListAsync();
-            return View(cities);
+            List<City> Cities;
+            Cities = _context.Cities.ToList();
+            return View(Cities);
         }
-        // GET: City/Create
+
+        [HttpGet]
         public IActionResult Create()
         {
-            return PartialView("CreateModalForm", new City());
+            City City = new City();
+            ViewBag.Countries = GetCountries();
+            return View(City);
         }
 
-        // POST: City/Create
-        [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(City city)
+        [HttpPost]
+        public IActionResult Create(City City)
         {
-            if (ModelState.IsValid)
-            {
-                _context.Add(city);
-                await _context.SaveChangesAsync();
-                return Json(new { success = true });
-            }
-            return PartialView("CreateModalForm", city);
+
+            _context.Add(City);
+            _context.SaveChanges();
+            return RedirectToAction(nameof(Index));
+
         }
 
-        // AJAX jaoks
         [HttpGet]
-        public JsonResult GetCities(int countryId)
+        public IActionResult Details(int Id)
         {
-            var cities = _context.Cities
-                .Where(c => c.CountryId == countryId)
-                .Select(c => new { c.Id, c.Name })
-                .ToList();
+            City City = _context.Cities
+              .Where(c => c.Id == Id).FirstOrDefault();
 
-            return Json(cities);
+            return View(City);
+        }
+
+        [HttpGet]
+        public IActionResult Edit(int Id)
+        {
+            City City = _context.Cities
+              .Where(c => c.Id == Id).FirstOrDefault();
+
+            ViewBag.Countries = GetCountries();
+
+            return View(City);
+        }
+
+        [ValidateAntiForgeryToken]
+        [HttpPost]
+        public IActionResult Edit(City City)
+        {
+            _context.Attach(City);
+            _context.Entry(City).State = EntityState.Modified;
+            _context.SaveChanges();
+            return RedirectToAction(nameof(Index));
+        }
+
+
+        [HttpGet]
+        public IActionResult Delete(int Id)
+        {
+            City City = _context.Cities
+              .Where(c => c.Id == Id).FirstOrDefault();
+
+            return View(City);
+        }
+
+        [ValidateAntiForgeryToken]
+        [HttpPost]
+        public IActionResult Delete(City City)
+        {
+            _context.Attach(City);
+            _context.Entry(City).State = EntityState.Deleted;
+            _context.SaveChanges();
+            return RedirectToAction(nameof(Index));
+        }
+
+
+        private List<SelectListItem> GetCountries()
+        {
+            var lstCountries = new List<SelectListItem>();
+
+            List<Country> Countries = _context.Countries.ToList();
+
+            lstCountries = Countries.Select(ct => new SelectListItem()
+            {
+                Value = ct.Id.ToString(),
+                Text = ct.Name
+            }).ToList();
+
+            var defItem = new SelectListItem()
+            {
+                Value = "",
+                Text = "----Select Country----"
+            };
+
+            lstCountries.Insert(0, defItem);
+
+            return lstCountries;
+        }
+
+        [HttpGet]
+        public IActionResult CreateModalForm(int countryId)
+        {
+            City city = new City();
+            city.CountryId = countryId;
+            city.CountryName = GetCountryName(countryId);
+            return PartialView("_CreateModalForm", city);
+        }
+
+        [HttpPost]
+        public IActionResult CreateModalForm(City city)
+        {
+            _context.Add(city);
+            _context.SaveChanges();
+            return NoContent();
+        }
+
+        private string GetCountryName(int countryId)
+        {
+            if (countryId == 0)
+                return "";
+
+            string strCountryName = _context.Countries
+                .Where(ct => ct.Id == countryId)
+                .Select(nm => nm.Name).Single().ToString();
+
+            return strCountryName;
         }
     }
-}
+}s
