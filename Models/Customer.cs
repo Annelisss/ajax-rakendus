@@ -1,4 +1,6 @@
-﻿namespace AdvancedAjax.Models
+﻿using Microsoft.AspNetCore.Http;
+
+namespace AdvancedAjax.Models
 {
     public class Customer
     {
@@ -37,11 +39,11 @@
 
 
         [Display(Name = "Profile Photo")]
-        [NotMapped]
-        public IFormFile ProfilePhoto { get; set; }
 
         [NotMapped]
         public string BreifPhotoName { get; set; }
 
+        [NotMapped]
+        public IFormFile ProfilePhoto { get; set; }
     }
 }

@@ -1,13 +1,13 @@
-﻿
-
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using AdvancedAjax.Models;
 
 namespace AdvancedAjax.Controllers
 {
     public class CustomerController : Controller
     {
         private readonly AppDbContext _context;
-
         private readonly IWebHostEnvironment _webHost;
 
         public CustomerController(AppDbContext context, IWebHostEnvironment webHost)
@@ -18,17 +18,19 @@ namespace AdvancedAjax.Controllers
 
         public IActionResult Index()
         {
-            List<Customer> Cities;
-            Cities = _context.Customers.ToList();
-            return View(Cities);
+            var customers = _context.Customers
+                .Include(c => c.City)
+                .ToList();
+
+            return View(customers);
         }
 
         [HttpGet]
         public IActionResult Create()
         {
-            Customer Customer = new Customer();
+            Customer customer = new Customer();
             ViewBag.Countries = GetCountries();
-            return View(Customer);
+            return View(customer);
         }
 
         [ValidateAntiForgeryToken]
@@ -41,27 +43,25 @@ namespace AdvancedAjax.Controllers
             _context.Add(customer);
             _context.SaveChanges();
             return RedirectToAction(nameof(Index));
-
         }
 
         [HttpGet]
-        public IActionResult Details(int Id)
+        public IActionResult Details(int id)
         {
             Customer customer = _context.Customers
-              .Include(cty => cty.City)
-              .Include(cou => cou.City.Country)
-              .Where(c => c.Id == Id).FirstOrDefault();
+                .Include(c => c.City)
+                .ThenInclude(city => city.Country)
+                .FirstOrDefault(c => c.Id == id);
 
             return View(customer);
         }
 
         [HttpGet]
-        public IActionResult Edit(int Id)
+        public IActionResult Edit(int id)
         {
             Customer customer = _context.Customers
-               .Include(co => co.City)
-               .Where(c => c.Id == Id).FirstOrDefault();
-
+                .Include(c => c.City)
+                .FirstOrDefault(c => c.Id == id);
 
             customer.CountryId = customer.City.CountryId;
 
@@ -84,14 +84,14 @@ namespace AdvancedAjax.Controllers
             _context.Attach(customer);
             _context.Entry(customer).State = EntityState.Modified;
             _context.SaveChanges();
+
             return RedirectToAction(nameof(Index));
         }
 
-
         [HttpGet]
-        public IActionResult Delete(int Id)
+        public IActionResult Delete(int id)
         {
-            Customer customer = _context.Customers.Where(c => c.Id == Id).FirstOrDefault();
+            Customer customer = _context.Customers.FirstOrDefault(c => c.Id == id);
             return View(customer);
         }
 
@@ -105,80 +105,81 @@ namespace AdvancedAjax.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-
-        private List<SelectListItem> GetCountries()
+        [HttpPost]
+        public IActionResult CreateModalForm(Customer customer)
         {
-            var lstCountries = new List<SelectListItem>();
+            string uniqueFileName = GetProfilePhotoFileName(customer);
+            customer.PhotoUrl = uniqueFileName;
 
-            List<Country> Countries = _context.Countries.ToList();
+            _context.Add(customer);
+            _context.SaveChanges();
 
-            lstCountries = Countries.Select(ct => new SelectListItem()
-            {
-                Value = ct.Id.ToString(),
-                Text = ct.Name
-            }).ToList();
-
-            var defItem = new SelectListItem()
-            {
-                Value = "",
-                Text = "----Select Country----"
-            };
-
-            lstCountries.Insert(0, defItem);
-
-            return lstCountries;
+            return NoContent(); // AJAX jaoks 204 vastus
         }
+
         [HttpGet]
         public JsonResult GetCitiesByCountry(int countryId)
         {
-
             List<SelectListItem> cities = _context.Cities
-              .Where(c => c.CountryId == countryId)
-              .OrderBy(n => n.Name)
-              .Select(n =>
-              new SelectListItem
-              {
-                  Value = n.Id.ToString(),
-                  Text = n.Name
-              }).ToList();
+                .Where(c => c.CountryId == countryId)
+                .OrderBy(c => c.Name)
+                .Select(c => new SelectListItem
+                {
+                    Value = c.Id.ToString(),
+                    Text = c.Name
+                })
+                .ToList();
 
             return Json(cities);
-
         }
 
-        private string GetProfilePhotoFileName(Customer customer)
+        private List<SelectListItem> GetCountries()
         {
-            string uniqueFileName = null;
-
-            if (customer.ProfilePhoto != null)
-            {
-                string uploadsFolder = Path.Combine(_webHost.WebRootPath, "images");
-                uniqueFileName = Guid.NewGuid().ToString() + "_" + customer.ProfilePhoto.FileName;
-                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-                using (var fileStream = new FileStream(filePath, FileMode.Create))
+            List<SelectListItem> lstCountries = _context.Countries
+                .Select(c => new SelectListItem
                 {
-                    customer.ProfilePhoto.CopyTo(fileStream);
-                }
-            }
-            return uniqueFileName;
+                    Value = c.Id.ToString(),
+                    Text = c.Name
+                })
+                .ToList();
+
+            lstCountries.Insert(0, new SelectListItem
+            {
+                Value = "",
+                Text = "----Select Country----"
+            });
+
+            return lstCountries;
         }
 
         private List<SelectListItem> GetCities(int countryId)
         {
-
-            List<SelectListItem> cities = _context.Cities
+            return _context.Cities
                 .Where(c => c.CountryId == countryId)
-                .OrderBy(n => n.Name)
-                .Select(n =>
-                new SelectListItem
+                .OrderBy(c => c.Name)
+                .Select(c => new SelectListItem
                 {
-                    Value = n.Id.ToString(),
-                    Text = n.Name
-                }).ToList();
-
-            return cities;
+                    Value = c.Id.ToString(),
+                    Text = c.Name
+                })
+                .ToList();
         }
 
+        private string GetProfilePhotoFileName(Customer customer)
+        {
+            if (customer.ProfilePhoto == null)
+                return null;
 
+            string uploadsFolder = Path.Combine(_webHost.WebRootPath, "images");
+            string uniqueFileName = Guid.NewGuid().ToString() + "_" + customer.ProfilePhoto.FileName;
+            string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                customer.ProfilePhoto.CopyTo(fileStream);
+            }
+
+            return uniqueFileName;
+        }
     }
 }

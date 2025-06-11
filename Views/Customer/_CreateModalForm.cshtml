@@ -1,0 +1,117 @@
+﻿@model AdvancedAjax.Models.Customer
+
+<h4>Create Customer</h4>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <form asp-action="CreateModalForm"
+              enctype="multipart/form-data"
+              data-ajax="true"
+              data-ajax-method="POST"
+              data-ajax-success="refreshCustomerList(); $('#createModal').modal('hide');"
+              data-ajax-failure="alert('Kliendi salvestamine ebaõnnestus!');">
+
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="FirstName" class="control-label"></label>
+                <input asp-for="FirstName" class="form-control" />
+                <span asp-validation-for="FirstName" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="LastName" class="control-label"></label>
+                <input asp-for="LastName" class="form-control" />
+                <span asp-validation-for="LastName" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="EmailId" class="control-label"></label>
+                <input asp-for="EmailId" class="form-control" />
+                <span asp-validation-for="EmailId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="CountryId" class="control-label"></label>
+                <select asp-for="CountryId" asp-items="ViewBag.Countries" class="form-control" onchange="loadCities(this.value)">
+                    <option value="">-- Select Country --</option>
+                </select>
+                <span asp-validation-for="CountryId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="CityId" class="control-label"></label>
+                <select asp-for="CityId" asp-items="ViewBag.Cities" class="form-control">
+                    <option value="">-- Select City --</option>
+                </select>
+                <span asp-validation-for="CityId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="ProfilePhoto" class="control-label">Upload Photo</label>
+                <input asp-for="ProfilePhoto" type="file" class="form-control" onchange="previewPhoto(this)" />
+                <span asp-validation-for="ProfilePhoto" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Preview</label>
+                <div style="border: 1px solid #ccc; padding: 10px; max-width: 200px;">
+                    <img id="photoPreview" src="~/images/default-placeholder.png" alt="Preview" style="max-width: 100%;" />
+                </div>
+            </div>
+
+            <div class="form-group text-right">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/lib/jquery-ajax-unobtrusive/jquery.unobtrusive-ajax.min.js"></script>
+
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+
+    <script>
+        function previewPhoto(input) {
+            const preview = document.getElementById("photoPreview");
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    preview.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.src = "/images/default-placeholder.png";
+            }
+        }
+
+        function loadCities(countryId) {
+            $.getJSON('/Customer/GetCitiesByCountry', { countryId: countryId }, function (data) {
+                var citySelect = $('select[name="CityId"]');
+                citySelect.empty();
+                $('<option>').val('').text('-- Select City --').appendTo(citySelect);
+                $.each(data, function (i, item) {
+                    $('<option>').val(item.value).text(item.text).appendTo(citySelect);
+                });
+            });
+        }
+
+        function refreshCustomerList() {
+            $.ajax({
+                url: '@Url.Action("Index", "Customer")',
+                type: 'GET',
+                success: function (data) {
+                    $('#customerList').html($(data).find('#customerList').html());
+                },
+                error: function () {
+                    alert("Andmete uuendamine ebaõnnestus!");
+                }
+            });
+        }
+    </script>
+}
