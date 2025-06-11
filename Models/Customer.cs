@@ -1,6 +1,4 @@
-﻿using System.ComponentModel;
-
-namespace AdvancedAjax.Models
+﻿namespace AdvancedAjax.Models
 {
     public class Customer
     {

@@ -1,6 +1,5 @@
-﻿using AdvancedAjax.Models;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AdvancedAjax.Controllers
 {
@@ -17,7 +16,7 @@ namespace AdvancedAjax.Controllers
         public IActionResult Index()
         {
             List<City> Cities;
-            Cities = _context.Cities.ToList();
+            Cities = _context.Cities.Include(c => c.Country).ToList();
             return View(Cities);
         }
 

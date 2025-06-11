@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using AdvancedAjax.Models;
 using Microsoft.AspNetCore.Mvc;
 

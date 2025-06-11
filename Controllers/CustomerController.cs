@@ -1,6 +1,6 @@
-﻿using AdvancedAjax.Models;
+﻿
+
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace AdvancedAjax.Controllers
 {

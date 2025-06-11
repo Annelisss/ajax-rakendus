@@ -9,7 +9,7 @@ function ShowCountryCreateModal() {
         type: 'get',
         success: function (response) {
             $("#DivCreateDialog").html(response);
-            ShowCreateModalForm();
+            ShowCreateModalForm(); 
         }
     });
     return;
@@ -100,19 +100,19 @@ function FillCountries(lstCountryId) {
     lstCountries.empty();
 
     lstCountries.append($('<option/>',
-        {
-            value: null,
-            text: "Select Country"
-        }));
+    {
+        value: null,
+        text: "Select Country"
+    }));
 
     $.getJSON("/country/GetCountries", function (countries) {
         if (countries != null && !jQuery.isEmptyObject(countries)) {
             $.each(countries, function (index, country) {
                 lstCountries.append($('<option/>',
-                    {
-                        value: country.value,
-                        text: country.text
-                    }));
+                {
+                    value: country.value,
+                    text: country.text
+                }));
             });
         }
     });
